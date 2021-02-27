@@ -11,6 +11,10 @@
 // 初始化屏幕驱动
 const uint8_t DISPLAY_WIDTH = 128;
 const uint8_t DISPLAY_HEIGH = 64;
+const uint8_t PIN_SCL = 4;
+const uint8_t PIN_SDA = 5;
+
+// U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0,PIN_SCL,PIN_SDA,U8X8_PIN_NONE);
 // U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, SCL, SDA, /* reset=*/U8X8_PIN_NONE);
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
@@ -22,13 +26,13 @@ uint8_t curMenuIdx = 0;
 
 // 按钮GPIO
 // D1 --> GPIO1
-const uint8_t BTN_1 = 1;
+const uint8_t BTN_1 = 14;
 // D2 --> GPIO16
-const uint8_t BTN_2 = 16;
+const uint8_t BTN_2 = 12;
 // D5 --> GPIO14
-const uint8_t BTN_3 = 14;
+const uint8_t BTN_3 = 13;
 // D6 --> GPIO12
-const uint8_t BTN_4 = 12;
+const uint8_t BTN_4 = 15;
 
 // 界面重绘
 uint8_t menu_redraw_required = 1;
@@ -174,14 +178,45 @@ void re_draw_ui()
   }
 }
 
+// 返回上一级菜单
+void go_back()
+{
+  curMenuIdx = curMenuIdx / 10;
+  menu_redraw_required = 1;
+  re_draw_ui();
+}
+
+// 按钮4点击处理
+void btn4_clicked()
+{
+  Serial.printf("btn4_clicked: curMenuIdx: %d, menu_redraw_required: %d \n", curMenuIdx, menu_redraw_required);
+  switch (curMenuIdx)
+  {
+  case MENU_HOME:
+    curMenuIdx = MENU_SETTING;
+    menu_redraw_required = 1;
+    re_draw_ui();
+    break;
+  default:
+    go_back();
+    break;
+  }
+}
+
 // the setup function runs once when you press reset or power the board
 void setup()
 {
   // initialize digital pin LED_BUILTIN as an output.
-  // pinMode(BTN_1, INPUT);
-  // pinMode(BTN_2, INPUT);
+  // pinMode(PIN_SCL, OUTPUT);
+  // pinMode(PIN_SDA, OUTPUT);
+  pinMode(BTN_1, INPUT);
+  digitalWrite(BTN_1, LOW);
+  pinMode(BTN_2, INPUT);
+  digitalWrite(BTN_2, LOW);
   pinMode(BTN_3, INPUT);
+  digitalWrite(BTN_3, LOW);
   pinMode(BTN_4, INPUT);
+  digitalWrite(BTN_4, LOW);
   pinMode(LED_BUILTIN, OUTPUT);
   // 调试串口
   Serial.begin(115200);
@@ -204,12 +239,52 @@ void loop()
     btn1State_l = btn1State;
     if (btn1State == 1)
     {
-      curMenuIdx = 4;
+      digitalWrite(LED_BUILTIN, HIGH);
+      Serial.printf("按钮状态： BTN_1: %d, BTN_2: %d, BTN_3: %d, BTN_4: %d \n", btn1State, btn2State, btn3State, btn4State);
+      Serial.printf("菜单按钮： %d  \n", curMenuIdx);
+      curMenuIdx = 1;
       menu_redraw_required = 1;
     }
   }
-  delay(3000);
-  curMenuIdx = 4;
-  menu_redraw_required = 1;
-  re_draw_ui();
+  btn2State = digitalRead(BTN_2);
+  if (btn2State_l != btn2State)
+  {
+    Serial.printf("按钮状态： BTN_1: %d, BTN_2: %d, BTN_3: %d, BTN_4: %d \n", btn1State, btn2State, btn3State, btn4State);
+    Serial.printf("菜单按钮： %d  \n", curMenuIdx);
+    btn2State_l = btn2State;
+    if (btn2State == 1)
+    {
+      curMenuIdx = 2;
+      menu_redraw_required = 1;
+    }
+  }
+  btn3State = digitalRead(BTN_3);
+  if (btn3State_l != btn3State)
+  {
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.printf("按钮状态： BTN_1: %d, BTN_2: %d, BTN_3: %d, BTN_4: %d \n", btn1State, btn2State, btn3State, btn4State);
+    Serial.printf("菜单按钮： %d  \n", curMenuIdx);
+    btn3State_l = btn3State;
+    if (btn3State == 1)
+    {
+      curMenuIdx = 3;
+      menu_redraw_required = 1;
+    }
+  }
+  btn4State = digitalRead(BTN_4);
+  if (btn4State == 1)
+  {
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+
+  if (btn4State != btn4State_l) {
+    Serial.printf("按钮状态： btn4State_l: %d, btn4State: %d \n", btn4State_l, btn4State);
+    if (btn4State_l == 1 && btn4State == 0)
+    {
+      digitalWrite(LED_BUILTIN, HIGH);
+      btn4_clicked();
+    }
+    btn4State_l = btn4State;
+  }
+  
 }
